@@ -84,35 +84,41 @@ const FilterLink = ({ filter, children }) => {
 }
 
 const getVisibleTodos = (todos, filter) => {
-  return todos.filter(todo => {
-    switch (filter) {
-      case 'SHOW_COMPLETED':
+  switch (filter) {
+    case 'SHOW_ALL':
+      return todos;
+    case 'SHOW_COMPLETED':
+      return todos.filter(todo => {
         return todo.completed;
-      case 'SHOW_PENDING':
+      });
+    case 'SHOW_PENDING':
+      return todos.filter(todo => {
         return !todo.completed;
-      default:
-        return true;
-    }
-  }).map(todo => {
-    let style = todo.completed ?
-      { textDecoration: 'line-through', fontWeight: 'bold' } : {};
-
-    return (
-      <li key={todo.id} style={style} onClick={() => {
-        store.dispatch({
-          type: 'TOGGLE_TODO',
-          id: todo.id,
-        });
-      }}>
-        {todo.text}
-      </li>
-    );
-  });
+      });
+    default:
+      return todos;
+  }
 };
 
 class TodoApp extends React.Component {
   render() {
     let { todos, filter } = this.props;
+
+    let visibleTodos = getVisibleTodos(todos, filter).map(todo => {
+      let style = todo.completed ?
+        { textDecoration: 'line-through', fontWeight: 'bold' } : {};
+
+      return (
+        <li key={todo.id} style={style} onClick={() => {
+          store.dispatch({
+            type: 'TOGGLE_TODO',
+            id: todo.id,
+          });
+        }}>
+          {todo.text}
+        </li>
+      );
+    })
 
     return (
       <div>
@@ -141,7 +147,7 @@ class TodoApp extends React.Component {
           </FilterLink>
         </p>
         <ul>
-          {getVisibleTodos(todos, filter)}
+          {visibleTodos}
         </ul>
       </div>
     );
