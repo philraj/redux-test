@@ -4,94 +4,24 @@ import { createStore, combineReducers } from 'redux';
 import expect from 'expect';
 import deepFreeze from 'deep-freeze';
 
-///// REDUCERS /////
-const filter = (state = 'SHOW_ALL', action = {}) => {
-  switch (action.type) {
-    case 'SET_FILTER':
-      return action.filter;
-    default:
-      return state;
-  }
-};
-
-const todos = (state = [], action = {}) => {
-  switch (action.type) {
-    case 'ADD_TODO':
-      return [
-        ...state,
-        todo(undefined, action)
-      ];
-    case 'TOGGLE_TODO':
-      return state.map(t => todo(t, action));
-    default:
-      return state;
-  }
-};
-
-const todo = (state, action) => {
-  switch (action.type) {
-    case 'ADD_TODO':
-      return {
-        id: action.id,
-        text: action.text,
-        completed: false
-      };
-    case 'TOGGLE_TODO':
-      if (state.id === action.id) {
-        return Object.assign({}, state, {
-          completed: !state.completed
-        });
-      } else {
-        return state;
-      }
-    default:
-      return state;
-  }
-};
-
-// const combineReducers = (reducers) => {
-//   const keys = Object.keys(reducers);
-//
-//   return (state = {}, action = {}) => {
-//     return keys.reduce(
-//       (nextState, key) => {
-//         nextState[key] = reducers[key](
-//           state[key],
-//           action
-//         );
-//         return nextState;
-//       }, {}
-//     );
-//   }
-// }
+import { todos, filter } from './reducers/reducers';
+import actions from './actions/actions';
+import filters from './filters/filters';
 
 const reducer = combineReducers({ todos, filter });
 const store = createStore(reducer);
 
 let nextTodoId = 0;
 
-const FilterLink = ({ filter, children }) => {
-    return (
-      <a href={'#' + filter} onClick={() => {
-        store.dispatch({
-          type: 'SET_FILTER',
-          filter
-        });
-      }}>
-        {children}
-      </a>
-    );
-}
-
 const getVisibleTodos = (todos, filter) => {
   switch (filter) {
-    case 'SHOW_ALL':
+    case filters.SHOW_ALL:
       return todos;
-    case 'SHOW_COMPLETED':
+    case filters.SHOW_COMPLETED:
       return todos.filter(todo => {
         return todo.completed;
       });
-    case 'SHOW_PENDING':
+    case filters.SHOW_PENDING:
       return todos.filter(todo => {
         return !todo.completed;
       });
@@ -100,18 +30,32 @@ const getVisibleTodos = (todos, filter) => {
   }
 };
 
+const FilterLink = ({ filter, children }) => {
+  return (
+    <a href={'#' + filter} onClick={() => {
+      store.dispatch({
+        type: actions.SET_FILTER,
+        filter
+      });
+    }}>
+      {children}
+    </a>
+  );
+}
+
 class TodoApp extends React.Component {
   render() {
-    let { todos, filter } = this.props;
-
-    let visibleTodos = getVisibleTodos(todos, filter).map(todo => {
+    let visibleTodos = getVisibleTodos(
+      this.props.todos,
+      this.props.filter
+    ).map(todo => {
       let style = todo.completed ?
         { textDecoration: 'line-through', fontWeight: 'bold' } : {};
 
       return (
-        <li key={todo.id} style={style} onClick={() => {
+        <li key={todo.id} style={style} onClick={ () => {
           store.dispatch({
-            type: 'TOGGLE_TODO',
+            type: actions.TOGGLE_TODO,
             id: todo.id,
           });
         }}>
@@ -122,27 +66,31 @@ class TodoApp extends React.Component {
 
     return (
       <div>
-        <input ref={ node => this.input = node }/>
-        <button type='button' onClick={() => {
+        <form onSubmit={e => {
+          e.preventDefault();
+          
           store.dispatch({
-            type: 'ADD_TODO',
+            type: actions.ADD_TODO,
             id: nextTodoId++,
             text: this.input.value
           });
           this.input.value = '';
         }}>
-          Add Todo...
-        </button>
+          <input ref={ node => this.input = node }/>
+          <button>
+            Add Todo...
+          </button>
+        </form>
         <p>
-          <FilterLink filter={'SHOW_ALL'}>
+          <FilterLink filter={filters.SHOW_ALL}>
             Show all
           </FilterLink>
           {' '}
-          <FilterLink filter={'SHOW_COMPLETED'}>
+          <FilterLink filter={filters.SHOW_COMPLETED}>
             Show completed
           </FilterLink>
           {' '}
-          <FilterLink filter={'SHOW_PENDING'}>
+          <FilterLink filter={filters.SHOW_PENDING}>
             Show pending
           </FilterLink>
         </p>
@@ -156,11 +104,15 @@ class TodoApp extends React.Component {
 
 const render = () => {
   ReactDOM.render(
-    <TodoApp {...store.getState()}/>, document.querySelector('.app'));
+    <TodoApp {...store.getState()} />, 
+    document.querySelector('.app')
+  );
 }
-render();
 
+render();
 store.subscribe(render);
+
+
 
 
 ///// TESTING /////
@@ -201,7 +153,7 @@ const testToggleTodo = () => {
       }
     ];
     const action = {
-      type: 'TOGGLE_TODO',
+      type: actions.TOGGLE_TODO,
       id: 0,
     }
     const stateAfter = [
@@ -225,6 +177,7 @@ const testToggleTodo = () => {
     ).toEqual(stateAfter);
 };
 
+// to be completed...
 const testSetFilter = () => {
   const stateBefore = [
     {
